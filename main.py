@@ -9,7 +9,7 @@ bot = telebot.TeleBot('1397387580:AAFUqrVJ2cB95UitgPgXahvNVOn5y48jGXM')
 
 @bot.message_handler(commands=['start'])
 def start_message(message):
-    bot.send_message(message.chat.id, 'Вас приветствует боте курса по выбору "Python и анализ данных". /help - помощь по командам')
+    bot.send_message(message.chat.id, 'Вас приветствует бот курса по выбору "Python и анализ данных". /help - помощь по командам')
 
 @bot.message_handler(commands=['help'])
 def help_message(message):
