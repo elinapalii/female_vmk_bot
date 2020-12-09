@@ -13,7 +13,7 @@ def start_message(message):
 
 @bot.message_handler(commands=['help'])
 def help_message(message):
-    bot.send_message(message.chat.id, '/join - записаться(войти) на курс, /login_admin - вход для преподавателя, /getinfo - получить информацию о курсе, /my_rating - посмотреть успеваемость, /show_stats-статистика')
+    bot.send_message(message.chat.id, 'Для студента:\n /join - записаться(войти) на курс\n /getinfo - получить информацию о курсе\n /my_rating - посмотреть успеваемость\n /unjoin - выйти с курса\n Для преподавателя\n /login_admin - вход для преподавателя\n /joined_students - список студентов, записаных на курс\n /show_stats - успеваемость курса')
 
 @bot.message_handler(commands=['getinfo'])
 def get_inf(message):
@@ -73,11 +73,22 @@ def login_stud_message(message):
     sel_res = cur.execute('SELECT points, misses, debts FROM uchet uch, joined jj WHERE jj.id=uch.id AND jj.telegram_id=?', (message.from_user.id,))
     first_row = cur.fetchone()
     if first_row != None:
-        bot.send_message(message.from_user.id, f'Баллы, пропуски, долги {str(first_row)}')
+        bot.send_message(message.from_user.id, f'Баллы {str(first_row[0])}, пропуски {str(first_row[1])}, долги {str(first_row[2])}')
     else:
         bot.send_message(message.from_user.id, "Ошибка - вы не записаны на курс")
     cur.close()
     con.close()
+
+@bot.message_handler(commands=['unjoin'])
+def delete_me(message):
+    con = sqlite3.connect("mybot_database.db")
+    cur = con.cursor()
+    cur.execute('DELETE FROM joined WHERE telegram_id=?', (message.from_user.id,))
+    bot.send_message(message.from_user.id, 'Вы больше не записаны на этот курс')
+    con.commit()
+    cur.close()
+    con.close()
+
 
 #Вход для администраторов
 def admin_login_exists(adm_login):
@@ -141,10 +152,34 @@ def login_stud_message(message):
         con = sqlite3.connect("mybot_database.db")
         cur = con.cursor()
         result = ""
-        for row in cur.execute('SELECT surname, name, patronymic, points, misses, debts FROM students st, uchet uch WHERE uch.id=st.id'):
+        for row in cur.execute('SELECT name, surname, patronymic, points, misses, debts FROM students st, uchet uch, joined jj WHERE st.id=uch.id AND st.id=jj.id'):
             result = result + str(row)
             result = result + "\n"
         #print(result)
+        result = result.replace(',','')
+        result = result.replace(')','')
+        result = result.replace('(','')
+        result = result.replace("'",'')
+        bot.send_message(message.from_user.id, result)
+        cur.close()
+        con.close()
+    else:
+        bot.send_message(message.from_user.id, "Ошибка - вы не администратор")
+
+@bot.message_handler(commands=['joined_students'])
+def joined_st(message):
+    if is_admin(message.from_user.id):
+        con = sqlite3.connect("mybot_database.db")
+        cur = con.cursor()
+        result = ""
+        for row in cur.execute('SELECT name, surname, patronymic FROM students st, joined jj WHERE st.id=jj.id'):
+            result = result + str(row)
+            result = result + "\n"
+        #print(result)
+        result = result.replace(',','')
+        result = result.replace(')','')
+        result = result.replace('(','')
+        result = result.replace("'",'')
         bot.send_message(message.from_user.id, result)
         cur.close()
         con.close()
